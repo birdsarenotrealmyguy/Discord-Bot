@@ -136,4 +136,4 @@ async def on_command_error(ctx, error):
   if isinstance(error, commands.CommandNotFound):
     await ctx.send('Invalid command used. Please type ".help" to show a list of valid commands.')
 
-client.run('ODIzMzA1NDQ4ODExMjY2MDU5.YFe48w.qopa1Qw3EGdWoQIMqeBFU48sIos')
+client.run('Token')
