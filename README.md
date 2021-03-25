@@ -1,6 +1,6 @@
 # Discord-Bot
 
-The purpose of this bot (known as Hack Bot) is to perform functions as specified by the needs of the Independent Hacker discord server.
+The purpose of this bot (known as Hack Bot) is to perform functions as specified by the needs of the Independent Hackers discord server.
 
 It is being written using Python 3.9.2.
 
