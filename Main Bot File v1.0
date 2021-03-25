@@ -1,43 +1,39 @@
 import discord
 import random
 import os
-from discord.ext import commands
+from discord.ext import commands, tasks
+from itertools import cycle
 
 client = commands.Bot(command_prefix = '.')
+status = cycle(['Visual Studio Code', 'Atom', 'Crysis (on a toaster)', 'Fallout New Vegas', 'Half-Life 3 - Confirmed Edition']) # This is the list of statuses you want to cycle.
 
-# I've temporarily placed this block OOC since it hasn't worked yet, but I'll get back to it later.
-"""@client.command()
-async def load(ctx, extension):
-  client.load_extension(f'cogs.{extension}')
-  await ctx.send('Extension loaded.')
-
-@client.command()
-async def unload(ctx, extension):
-  client.unload_extension(f'cogs.{extension}')
-  await ctx.send('Extension unloaded.')
-
-# Really need to find the directory that cogs is in, because ./cogs isn't working. 
-for filename in os.listdir('./cogs'):
-  if filename.endswith('.py'):
-    client.load_extension(f'cogs.{filename[:-3]}')"""
-# I've temporarily placed this block OOC since it hasn't worked yet, but I'll get back to it later.
-
+# This outputs a message showing that the bot is working.
 @client.event
 async def on_ready():
+  change_status.start()
   print('Bot is ready.')
 
-@client.event
-async def on_member_join(member):
-  print(f'{member} has joined a server.')
+# Changes the time interval for status updates, and cycles through the statuses stated above.
+@tasks.loop(minutes=10) 
+async def change_status():
+  await client.change_presence(status=discord.Status.idle, activity=discord.Game(next(status)))
 
-@client.event
-async def on_member_remove(member):
-  print(f'{member} has left a server.')
-
+# This is just a command to see the bot's ping to Discord.
 @client.command()
 async def ping(ctx):
   await ctx.send(f'{round(client.latency * 1000)}ms')
 
+# This shows when a member joins a server.
+@client.event
+async def on_member_join(member):
+  print(f'{member} has joined a server.')
+
+# This shows when a member leaves a server.
+@client.event
+async def on_member_remove(member):
+  print(f'{member} has left a server.')
+
+# This is a "magic 8 ball", where you ask a question and receive a random 8 ball response.
 @client.command(aliases=['8ball'])
 async def _8ball(ctx, *, question):
   responses = ["It is certain.",
@@ -60,22 +56,60 @@ async def _8ball(ctx, *, question):
               "My sources say no.",
               "Outlook not so good.",
               "Very doubtful."]
-  await ctx.send(f'Question: {question}\nAnswer: {random.choice(responses)}')
+  await ctx.send(f'Question: {question}\nAnswer: {random.choice(responses)}') 
 
-@client.command()
-async def clear(ctx, amount=5):
-  await ctx.channel.purge(limit=amount)
+# This is the 8ball error message.
+@_8ball.error
+async def clear_error(ctx, error):
+  if isinstance(error, commands.MissingRequiredArgument):
+    await ctx.send('Please specify what you want predicted by the Magic 8 Ball.')
 
+# This clears messages in a channel.
 @client.command()
+@commands.has_permissions(manage_messages=True)
+async def clear(ctx, amount : int):
+  await ctx.channel.purge(limit=amount) 
+
+# This is the clear message error.
+@clear.error
+async def clear_error(ctx, error):
+  if isinstance(error, commands.MissingRequiredArgument):
+    await ctx.send('Please specify an amount of messages to delete.')
+  if isinstance(error, commands.MissingPermissions):
+    await ctx.send('You do not have permission to use this command.')
+
+# This kicks a channel member.
+@client.command()
+@commands.has_permissions(kick_members=True)
 async def kick(ctx, member : discord.Member, *, reason=None):
-  await member.kick(reason=reason)
+  await member.kick(reason=reason) 
 
+# This is the kick error message.
+@kick.error
+async def clear_error(ctx, error):
+  if isinstance(error, commands.MissingRequiredArgument):
+    await ctx.send('Please specify a member to kick, and a reason (if applicable).')
+  if isinstance(error, commands.MissingPermissions):
+    await ctx.send('You do not have permission to use this command.')
+
+# This bans a channel member.
 @client.command()
+@commands.has_permissions(ban_members=True)
 async def ban(ctx, member : discord.Member, *, reason=None):
   await member.ban(reason=reason)
-  await ctx.send(f'Banned {member.mention}')
+  await ctx.send(f'Banned {member.mention}') 
 
+# This is the ban error message.
+@ban.error
+async def clear_error(ctx, error):
+  if isinstance(error, commands.MissingRequiredArgument):
+    await ctx.send('Please specify a member to ban, and a reason (if applicable).')
+  if isinstance(error, commands.MissingPermissions):
+    await ctx.send('You do not have permission to use this command.')
+
+# This unbans a channel member.
 @client.command()
+@commands.has_permissions(administrator=True)
 async def unban(ctx, *, member):
   banned_users = await ctx.guild.bans()
   member_name, member_discriminator = member.split('#')
@@ -86,6 +120,20 @@ async def unban(ctx, *, member):
     if (user.name, user.discriminator) == (member_name, member_discriminator):
       await ctx.guild.unban(user)
       await ctx.send(f'Unbanned {user.mention}')
-      return
+      return 
 
-client.run('Insert Bot Token Here - Given by Repository Owner')
+# This is the unban error message.
+@unban.error
+async def clear_error(ctx, error):
+  if isinstance(error, commands.MissingRequiredArgument):
+    await ctx.send('Please specify a member to unban.')
+  if isinstance(error, commands.MissingPermissions):
+    await ctx.send('You do not have permission to use this command.')
+
+# This determines whether or not an issued command is valid or not, and displays a message if the command is invalid.
+@client.event
+async def on_command_error(ctx, error):
+  if isinstance(error, commands.CommandNotFound):
+    await ctx.send('Invalid command used. Please type ".help" to show a list of valid commands.')
+
+client.run('ODIzMzA1NDQ4ODExMjY2MDU5.YFe48w.qopa1Qw3EGdWoQIMqeBFU48sIos')
